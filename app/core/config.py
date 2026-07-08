@@ -41,6 +41,9 @@ class AppConfig(BaseModel):
     source_lang: str = Field(default="auto")
     target_lang: str = Field(default="zh")
     ui_lang: str = Field(default="zh")
+    doc_output_dir: str = Field(default="")
+    doc_output_format: str = Field(default="same")
+    max_workers: int = Field(default=4)
     timeout: float = Field(default=30.0)
 
     @classmethod

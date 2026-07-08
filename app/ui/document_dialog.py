@@ -1,7 +1,8 @@
 """Document batch translation dialog.
 
-Lets the user pick a file, choose source/target languages, translate all
-segments with a progress bar, and open the output folder when finished.
+Lets the user pick a file, choose source/target languages, output folder and
+output format, translate all segments concurrently with a progress bar, and
+open the output folder when finished. Output preferences are saved to config.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -22,6 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..core.documents import get_parser, supported_extensions
+from ..core.documents.writers import OUTPUT_FORMATS
 from ..core.engine import TranslationEngine
 from ..features.doc_worker import DocTranslateTask
 from .i18n import lang_label, tr
@@ -34,9 +37,10 @@ class DocumentDialog(QDialog):
         self.engine = engine
         self._task: DocTranslateTask | None = None
         self._input_path: str | None = None
+        self._output_path: str | None = None
 
         self.setWindowTitle(tr("doc_title"))
-        self.setMinimumWidth(520)
+        self.setMinimumWidth(560)
 
         # File row
         self.file_label = QLabel(tr("doc_no_file"))
@@ -55,13 +59,34 @@ class DocumentDialog(QDialog):
             self.source_lang.addItem(lang_label(code), code)
             if code != "auto":
                 self.target_lang.addItem(lang_label(code), code)
-        self._select_lang(self.source_lang, engine.config.source_lang)
-        self._select_lang(self.target_lang, engine.config.target_lang)
+        self._select_data(self.source_lang, engine.config.source_lang)
+        self._select_data(self.target_lang, engine.config.target_lang)
         lang_row = QHBoxLayout()
         lang_row.addWidget(self.from_label)
         lang_row.addWidget(self.source_lang, 1)
         lang_row.addWidget(self.to_label)
         lang_row.addWidget(self.target_lang, 1)
+
+        # Output directory row
+        self.dir_label = QLabel(tr("doc_output_dir"))
+        self.dir_edit = QLineEdit(engine.config.doc_output_dir)
+        self.dir_edit.setPlaceholderText(tr("doc_output_dir_default"))
+        self.dir_btn = QPushButton(tr("doc_choose_dir"))
+        self.dir_btn.clicked.connect(self._choose_dir)
+        dir_row = QHBoxLayout()
+        dir_row.addWidget(self.dir_label)
+        dir_row.addWidget(self.dir_edit, 1)
+        dir_row.addWidget(self.dir_btn)
+
+        # Output format row
+        self.fmt_label = QLabel(tr("doc_output_format"))
+        self.fmt_combo = QComboBox()
+        for key in OUTPUT_FORMATS:
+            self.fmt_combo.addItem(tr(f"fmt_{key}"), key)
+        self._select_data(self.fmt_combo, engine.config.doc_output_format)
+        fmt_row = QHBoxLayout()
+        fmt_row.addWidget(self.fmt_label)
+        fmt_row.addWidget(self.fmt_combo, 1)
 
         # Progress
         self.progress = QProgressBar()
@@ -85,14 +110,14 @@ class DocumentDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addLayout(file_row)
         layout.addLayout(lang_row)
+        layout.addLayout(dir_row)
+        layout.addLayout(fmt_row)
         layout.addWidget(self.progress)
         layout.addWidget(self.status_label)
         layout.addLayout(btn_row)
 
-        self._output_path: str | None = None
-
     @staticmethod
-    def _select_lang(combo: QComboBox, code: str) -> None:
+    def _select_data(combo: QComboBox, code: str) -> None:
         idx = combo.findData(code)
         if idx >= 0:
             combo.setCurrentIndex(idx)
@@ -108,6 +133,20 @@ class DocumentDialog(QDialog):
             self.progress.setValue(0)
             self.status_label.setText("")
 
+    def _choose_dir(self) -> None:
+        start = self.dir_edit.text() or (
+            os.path.dirname(self._input_path) if self._input_path else ""
+        )
+        path = QFileDialog.getExistingDirectory(self, tr("doc_choose_dir"), start)
+        if path:
+            self.dir_edit.setText(path)
+
+    def _persist_prefs(self) -> None:
+        cfg = self.engine.config
+        cfg.doc_output_dir = self.dir_edit.text().strip()
+        cfg.doc_output_format = self.fmt_combo.currentData()
+        cfg.save()
+
     def _start(self) -> None:
         if not self._input_path:
             QMessageBox.information(self, tr("doc_title"), tr("doc_select_prompt"))
@@ -118,10 +157,11 @@ class DocumentDialog(QDialog):
             )
             return
 
+        self._persist_prefs()
         source = self.source_lang.currentData()
         target = self.target_lang.currentData()
-        parser = get_parser(self._input_path)
-        self._output_path = str(parser.default_output_path(target))
+        output_dir = self.dir_edit.text().strip()
+        output_format = self.fmt_combo.currentData()
 
         self.start_btn.setEnabled(False)
         self.choose_btn.setEnabled(False)
@@ -129,7 +169,13 @@ class DocumentDialog(QDialog):
         self.progress.setValue(0)
 
         self._task = DocTranslateTask(
-            self.engine, self._input_path, self._output_path, source, target
+            self.engine,
+            self._input_path,
+            source,
+            target,
+            output_dir,
+            output_format,
+            self.engine.config.max_workers,
         )
         self._task.worker.progress.connect(self._on_progress)
         self._task.worker.finished.connect(self._on_finished)
