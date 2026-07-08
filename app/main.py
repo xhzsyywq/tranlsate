@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from .core.config import AppConfig
 from .core.engine import TranslationEngine
+from .ui.hotkeys import GlobalHotkeys
 from .ui.main_window import MainWindow
 from .ui.tray import create_tray
 
@@ -26,6 +27,11 @@ def main() -> int:
     window = MainWindow(engine)
     window.tray = create_tray(window)
     window.show()
+
+    hotkeys = GlobalHotkeys()
+    hotkeys.screen_translate_triggered.connect(window.start_screen_translate)
+    hotkeys.start("ctrl+alt+z")
+    window.hotkeys = hotkeys
 
     return app.exec()
 

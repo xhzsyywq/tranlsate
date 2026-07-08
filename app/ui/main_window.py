@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from ..core.config import AppConfig
 from ..core.engine import TranslationEngine
 from ..core.providers.base import LANG_NAMES
+from ..features.screen_translate import ScreenTranslator
 from . import i18n
 from .i18n import lang_label, tr
 from .settings_dialog import SettingsDialog
@@ -29,6 +30,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.engine = engine
         self._task: TranslationTask | None = None
+        self._screen_translator = ScreenTranslator(engine)
 
         i18n.set_language(engine.config.ui_lang)
 
@@ -46,6 +48,10 @@ class MainWindow(QMainWindow):
         self.settings_action.setShortcut("Ctrl+,")
         self.settings_action.triggered.connect(self.open_settings)
         self.file_menu = self.menuBar().addMenu("")
+        self.screen_action = QAction(self)
+        self.screen_action.setShortcut("Ctrl+Alt+Z")
+        self.screen_action.triggered.connect(self.start_screen_translate)
+        self.file_menu.addAction(self.screen_action)
         self.file_menu.addAction(self.settings_action)
         self.quit_action = QAction(self)
         self.quit_action.triggered.connect(self._quit)
@@ -81,10 +87,17 @@ class MainWindow(QMainWindow):
         self.translate_btn.setShortcut("Ctrl+Return")
         self.translate_btn.clicked.connect(self.translate)
 
+        self.screen_btn = QPushButton()
+        self.screen_btn.clicked.connect(self.start_screen_translate)
+
+        button_bar = QHBoxLayout()
+        button_bar.addWidget(self.screen_btn)
+        button_bar.addWidget(self.translate_btn, 1)
+
         layout = QVBoxLayout()
         layout.addLayout(lang_bar)
         layout.addLayout(panes, 1)
-        layout.addWidget(self.translate_btn)
+        layout.addLayout(button_bar)
 
         central = QWidget()
         central.setLayout(layout)
@@ -100,6 +113,7 @@ class MainWindow(QMainWindow):
         """Apply current-language strings to all widgets."""
         self.setWindowTitle(tr("app_title"))
         self.file_menu.setTitle(tr("menu_file"))
+        self.screen_action.setText(tr("screen_translate"))
         self.settings_action.setText(tr("menu_settings"))
         self.quit_action.setText(tr("menu_quit"))
         self.from_label.setText(tr("from"))
@@ -108,6 +122,7 @@ class MainWindow(QMainWindow):
         self.source_text.setPlaceholderText(tr("source_placeholder"))
         self.result_text.setPlaceholderText(tr("result_placeholder"))
         self.translate_btn.setText(tr("translate"))
+        self.screen_btn.setText(tr("screen_translate"))
         self.statusBar().showMessage(tr("status_ready"))
         for combo in (self.source_lang, self.target_lang):
             for i in range(combo.count()):
@@ -131,6 +146,10 @@ class MainWindow(QMainWindow):
             return
         self._select_lang(self.source_lang, tgt)
         self._select_lang(self.target_lang, src)
+
+    def start_screen_translate(self) -> None:
+        """Trigger the screen region-selection + OCR translation flow."""
+        self._screen_translator.start()
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self.engine.config, self)

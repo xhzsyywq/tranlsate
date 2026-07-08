@@ -21,6 +21,10 @@ class AppTrayIcon(QSystemTrayIcon):
         self.show_action.triggered.connect(self._show_window)
         menu.addAction(self.show_action)
 
+        self.screen_action = QAction(window)
+        self.screen_action.triggered.connect(window.start_screen_translate)
+        menu.addAction(self.screen_action)
+
         self.settings_action = QAction(window)
         self.settings_action.triggered.connect(window.open_settings)
         menu.addAction(self.settings_action)
@@ -38,6 +42,7 @@ class AppTrayIcon(QSystemTrayIcon):
     def retranslate(self) -> None:
         self.setToolTip(tr("tray_tooltip"))
         self.show_action.setText(tr("tray_show"))
+        self.screen_action.setText(tr("screen_translate"))
         self.settings_action.setText(tr("menu_settings"))
         self.quit_action.setText(tr("menu_quit"))
 
