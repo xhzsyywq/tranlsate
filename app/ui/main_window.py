@@ -58,6 +58,9 @@ class MainWindow(QMainWindow):
         self.screen_action.setShortcut("Ctrl+Alt+Z")
         self.screen_action.triggered.connect(self.start_screen_translate)
         self.file_menu.addAction(self.screen_action)
+        self.doc_action = QAction(self)
+        self.doc_action.triggered.connect(self.open_document_dialog)
+        self.file_menu.addAction(self.doc_action)
         self.file_menu.addAction(self.settings_action)
         self.quit_action = QAction(self)
         self.quit_action.triggered.connect(self._quit)
@@ -96,8 +99,12 @@ class MainWindow(QMainWindow):
         self.screen_btn = QPushButton()
         self.screen_btn.clicked.connect(self.start_screen_translate)
 
+        self.doc_btn = QPushButton()
+        self.doc_btn.clicked.connect(self.open_document_dialog)
+
         button_bar = QHBoxLayout()
         button_bar.addWidget(self.screen_btn)
+        button_bar.addWidget(self.doc_btn)
         button_bar.addWidget(self.translate_btn, 1)
 
         layout = QVBoxLayout()
@@ -120,6 +127,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(tr("app_title"))
         self.file_menu.setTitle(tr("menu_file"))
         self.screen_action.setText(tr("screen_translate"))
+        self.doc_action.setText(tr("doc_translate"))
         self.settings_action.setText(tr("menu_settings"))
         self.quit_action.setText(tr("menu_quit"))
         self.from_label.setText(tr("from"))
@@ -129,6 +137,7 @@ class MainWindow(QMainWindow):
         self.result_text.setPlaceholderText(tr("result_placeholder"))
         self.translate_btn.setText(tr("translate"))
         self.screen_btn.setText(tr("screen_translate"))
+        self.doc_btn.setText(tr("doc_translate"))
         self.statusBar().showMessage(tr("status_ready"))
         for combo in (self.source_lang, self.target_lang):
             for i in range(combo.count()):
@@ -156,6 +165,13 @@ class MainWindow(QMainWindow):
     def start_screen_translate(self) -> None:
         """Trigger the screen region-selection + OCR translation flow."""
         self._screen_translator.start()
+
+    def open_document_dialog(self) -> None:
+        """Open the batch document translation dialog."""
+        from .document_dialog import DocumentDialog
+
+        dialog = DocumentDialog(self.engine, self)
+        dialog.exec()
 
     def _on_screen_recognizing(self) -> None:
         log.info("Main window: OCR recognizing, bringing window to front")
