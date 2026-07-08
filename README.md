@@ -5,7 +5,7 @@
 ## 规划路线
 
 - [x] **阶段 0**：核心骨架（配置系统、翻译引擎、Provider 适配器、CLI 验证）
-- [ ] **阶段 1**：核心 GUI（主窗口双语互译、设置页、系统托盘）
+- [x] **阶段 1**：核心 GUI（主窗口双语互译、设置页、系统托盘）
 - [ ] 阶段 2：屏幕框选截图 + OCR 翻译
 - [ ] 阶段 3：文档批量翻译（TXT/SRT/DOCX/PDF）
 - [ ] 阶段 4：题目识别 + 大模型作答 + 自动填充
@@ -44,16 +44,31 @@ python -m app.cli --to en --from zh          # 从 stdin 读取
 python -m app.cli --show-config
 ```
 
+## 使用（GUI）
+
+```powershell
+python -m app.main
+```
+
+首次运行请在菜单 `File → Settings`（Ctrl+,）填入 API key。窗口关闭后最小化到
+系统托盘，双击托盘图标可显示/隐藏。
+
 ## 项目结构
 
 ```
 app/
 ├─ cli.py                # 命令行入口
-└─ core/
-   ├─ config.py          # 配置读写
-   ├─ engine.py          # 翻译调度器
-   └─ providers/
-      ├─ base.py         # Provider 抽象基类
-      ├─ openai_api.py   # OpenAI 兼容适配器（DeepSeek 默认）
-      └─ registry.py     # Provider 注册表
+├─ main.py               # GUI 入口 + 系统托盘
+├─ core/
+│  ├─ config.py          # 配置读写
+│  ├─ engine.py          # 翻译调度器
+│  └─ providers/
+│     ├─ base.py         # Provider 抽象基类
+│     ├─ openai_api.py   # OpenAI 兼容适配器（DeepSeek 默认）
+│     └─ registry.py     # Provider 注册表
+└─ ui/
+   ├─ main_window.py     # 主窗口：双语互译
+   ├─ settings_dialog.py # 设置页
+   ├─ tray.py            # 系统托盘
+   └─ worker.py          # 后台翻译线程
 ```
