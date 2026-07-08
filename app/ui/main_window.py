@@ -17,12 +17,15 @@ from PySide6.QtWidgets import (
 
 from ..core.config import AppConfig
 from ..core.engine import TranslationEngine
+from ..core.logging_setup import get_logger
 from ..core.providers.base import LANG_NAMES
 from ..features.screen_translate import ScreenTranslator
 from . import i18n
 from .i18n import lang_label, tr
 from .settings_dialog import SettingsDialog
 from .worker import TranslationTask
+
+log = get_logger(__name__)
 
 
 class MainWindow(QMainWindow):
@@ -31,6 +34,9 @@ class MainWindow(QMainWindow):
         self.engine = engine
         self._task: TranslationTask | None = None
         self._screen_translator = ScreenTranslator(engine)
+        self._screen_translator.recognizing.connect(self._on_screen_recognizing)
+        self._screen_translator.recognized.connect(self._on_screen_recognized)
+        self._screen_translator.failed.connect(self._on_screen_failed)
 
         i18n.set_language(engine.config.ui_lang)
 
@@ -150,6 +156,30 @@ class MainWindow(QMainWindow):
     def start_screen_translate(self) -> None:
         """Trigger the screen region-selection + OCR translation flow."""
         self._screen_translator.start()
+
+    def _on_screen_recognizing(self) -> None:
+        log.info("Main window: OCR recognizing, bringing window to front")
+        self.showNormal()
+        self.activateWindow()
+        self.raise_()
+        self.statusBar().showMessage(tr("screen_recognizing"))
+
+    def _on_screen_recognized(self, text: str) -> None:
+        log.info("Main window: recognized text received (%d chars)", len(text))
+        text = text.strip()
+        if not text:
+            log.warning("Main window: recognized text empty after strip")
+            self.statusBar().showMessage(tr("screen_no_text"), 3000)
+            return
+        self.source_text.setPlainText(text)
+        log.info("Main window: source box set, auto-translating")
+        self.statusBar().showMessage(tr("status_done"), 2000)
+        self.translate()
+
+    def _on_screen_failed(self, message: str) -> None:
+        log.error("Main window: screen translate failed: %s", message)
+        self.statusBar().showMessage(tr("status_failed"), 5000)
+        QMessageBox.critical(self, tr("status_failed"), message)
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self.engine.config, self)

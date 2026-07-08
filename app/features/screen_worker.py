@@ -1,61 +1,43 @@
-"""Background worker for the capture -> OCR -> translate pipeline."""
+"""Background worker for OCR on a captured image (off the UI thread)."""
 
 from __future__ import annotations
 
 from PySide6.QtCore import QObject, QThread, Signal
 
-from ..core.engine import TranslationEngine
+from ..core.logging_setup import get_logger
 from ..core.ocr import OCREngine
 
+log = get_logger(__name__)
 
-class ScreenTranslateWorker(QObject):
-    """Runs OCR then translation on a captured PIL image off the UI thread."""
 
-    recognized = Signal(str)
+class OCRWorker(QObject):
+    """Runs OCR on a captured PIL image and returns the recognized text."""
+
     finished = Signal(str)
     failed = Signal(str)
 
-    def __init__(
-        self,
-        engine: TranslationEngine,
-        ocr: OCREngine,
-        image,
-        source: str,
-        target: str,
-    ):
+    def __init__(self, ocr: OCREngine, image):
         super().__init__()
-        self._engine = engine
         self._ocr = ocr
         self._image = image
-        self._source = source
-        self._target = target
 
     def run(self) -> None:
         try:
+            log.info("OCR worker running on image size=%s", getattr(self._image, "size", None))
             text = self._ocr.image_to_text(self._image)
-            self.recognized.emit(text)
-            if not text.strip():
-                self.finished.emit("")
-                return
-            result = self._engine.translate(text, self._source, self._target)
-            self.finished.emit(result)
+            log.info("OCR worker recognized %d chars", len(text))
+            self.finished.emit(text)
         except Exception as exc:  # noqa: BLE001
+            log.exception("OCR worker error")
             self.failed.emit(str(exc))
 
 
-class ScreenTranslateTask:
-    """Owns a QThread + worker pair for one screen-translation run."""
+class OCRTask:
+    """Owns a QThread + worker pair for one OCR run."""
 
-    def __init__(
-        self,
-        engine: TranslationEngine,
-        ocr: OCREngine,
-        image,
-        source: str,
-        target: str,
-    ):
+    def __init__(self, ocr: OCREngine, image):
         self.thread = QThread()
-        self.worker = ScreenTranslateWorker(engine, ocr, image, source, target)
+        self.worker = OCRWorker(ocr, image)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)

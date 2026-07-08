@@ -13,12 +13,17 @@ from PySide6.QtWidgets import QApplication
 
 from .core.config import AppConfig
 from .core.engine import TranslationEngine
+from .core.logging_setup import get_logger, setup_logging
 from .ui.hotkeys import GlobalHotkeys
 from .ui.main_window import MainWindow
 from .ui.tray import create_tray
 
 
 def main() -> int:
+    setup_logging()
+    log = get_logger(__name__)
+    log.info("AutoTranslate starting")
+
     app = QApplication(sys.argv)
     app.setApplicationName("AutoTranslate")
     app.setQuitOnLastWindowClosed(False)

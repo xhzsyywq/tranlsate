@@ -64,6 +64,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "screen_recognizing": "\u6b63\u5728\u8bc6\u522b...",
         "screen_no_text": "\u672a\u8bc6\u522b\u5230\u6587\u672c",
         "screen_copy": "\u590d\u5236\u8bd1\u6587",
+        "screen_retranslate": "\u91cd\u65b0\u7ffb\u8bd1",
         # Language names (for selectors)
         "lang_auto": "\u81ea\u52a8\u68c0\u6d4b",
         "lang_zh": "\u4e2d\u6587\uff08\u7b80\u4f53\uff09",
@@ -121,6 +122,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "screen_recognizing": "Recognizing...",
         "screen_no_text": "No text detected",
         "screen_copy": "Copy translation",
+        "screen_retranslate": "Re-translate",
         "lang_auto": "Auto-detect",
         "lang_zh": "Chinese (Simplified)",
         "lang_zh-tw": "Chinese (Traditional)",
