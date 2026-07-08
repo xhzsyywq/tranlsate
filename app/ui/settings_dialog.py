@@ -14,12 +14,13 @@ from PySide6.QtWidgets import (
 from ..core.config import AppConfig
 from ..core.providers.base import LANG_NAMES
 from ..core.providers.registry import available_providers
+from .i18n import UI_LANGUAGES, lang_label, tr
 
 
 class SettingsDialog(QDialog):
     def __init__(self, config: AppConfig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Settings")
+        self.setWindowTitle(tr("settings_title"))
         self.setMinimumWidth(420)
         self._config = config
 
@@ -34,26 +35,36 @@ class SettingsDialog(QDialog):
         self.base_url_edit = QLineEdit(config.base_url)
         self.model_edit = QLineEdit(config.model)
 
+        self.ui_lang_edit = QComboBox()
+        for code, name in UI_LANGUAGES.items():
+            self.ui_lang_edit.addItem(name, code)
+        self._select_data(self.ui_lang_edit, config.ui_lang)
+
         self.source_edit = QComboBox()
         self.target_edit = QComboBox()
-        for code, name in LANG_NAMES.items():
-            self.source_edit.addItem(f"{name} ({code})", code)
+        for code in LANG_NAMES:
+            self.source_edit.addItem(lang_label(code), code)
             if code != "auto":
-                self.target_edit.addItem(f"{name} ({code})", code)
-        self._select_lang(self.source_edit, config.source_lang)
-        self._select_lang(self.target_edit, config.target_lang)
+                self.target_edit.addItem(lang_label(code), code)
+        self._select_data(self.source_edit, config.source_lang)
+        self._select_data(self.target_edit, config.target_lang)
 
         form = QFormLayout()
-        form.addRow("Provider", self.provider_edit)
-        form.addRow("API Key", self.api_key_edit)
-        form.addRow("Base URL", self.base_url_edit)
-        form.addRow("Model", self.model_edit)
-        form.addRow("Default source", self.source_edit)
-        form.addRow("Default target", self.target_edit)
+        form.addRow(tr("settings_provider"), self.provider_edit)
+        form.addRow(tr("settings_api_key"), self.api_key_edit)
+        form.addRow(tr("settings_base_url"), self.base_url_edit)
+        form.addRow(tr("settings_model"), self.model_edit)
+        form.addRow(
+            f"{tr('settings_ui_lang')} {tr('settings_ui_lang_hint')}", self.ui_lang_edit
+        )
+        form.addRow(tr("settings_default_source"), self.source_edit)
+        form.addRow(tr("settings_default_target"), self.target_edit)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("ok"))
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(tr("cancel"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
@@ -62,7 +73,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(buttons)
 
     @staticmethod
-    def _select_lang(combo: QComboBox, code: str) -> None:
+    def _select_data(combo: QComboBox, code: str) -> None:
         idx = combo.findData(code)
         if idx >= 0:
             combo.setCurrentIndex(idx)
@@ -75,6 +86,7 @@ class SettingsDialog(QDialog):
                 "api_key": self.api_key_edit.text().strip(),
                 "base_url": self.base_url_edit.text().strip(),
                 "model": self.model_edit.text().strip(),
+                "ui_lang": self.ui_lang_edit.currentData(),
                 "source_lang": self.source_edit.currentData(),
                 "target_lang": self.target_edit.currentData(),
             }

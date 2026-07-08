@@ -5,39 +5,56 @@ from __future__ import annotations
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
+from .i18n import tr
 
-def create_tray(window) -> QSystemTrayIcon:
-    """Create and attach a system tray icon to ``window``."""
-    icon = window.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
-    tray = QSystemTrayIcon(QIcon(icon), window)
-    tray.setToolTip("AutoTranslate")
 
-    menu = QMenu()
+class AppTrayIcon(QSystemTrayIcon):
+    """Tray icon whose menu can be re-localized at runtime."""
 
-    show_action = QAction("Show", window)
-    show_action.triggered.connect(lambda: (window.showNormal(), window.activateWindow()))
-    menu.addAction(show_action)
+    def __init__(self, window):
+        icon = window.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+        super().__init__(QIcon(icon), window)
+        self._window = window
 
-    settings_action = QAction("Settings", window)
-    settings_action.triggered.connect(window.open_settings)
-    menu.addAction(settings_action)
+        menu = QMenu()
+        self.show_action = QAction(window)
+        self.show_action.triggered.connect(self._show_window)
+        menu.addAction(self.show_action)
 
-    menu.addSeparator()
+        self.settings_action = QAction(window)
+        self.settings_action.triggered.connect(window.open_settings)
+        menu.addAction(self.settings_action)
 
-    quit_action = QAction("Quit", window)
-    quit_action.triggered.connect(QApplication.quit)
-    menu.addAction(quit_action)
+        menu.addSeparator()
 
-    tray.setContextMenu(menu)
+        self.quit_action = QAction(window)
+        self.quit_action.triggered.connect(QApplication.quit)
+        menu.addAction(self.quit_action)
 
-    def on_activated(reason: QSystemTrayIcon.ActivationReason) -> None:
+        self.setContextMenu(menu)
+        self.activated.connect(self._on_activated)
+        self.retranslate()
+
+    def retranslate(self) -> None:
+        self.setToolTip(tr("tray_tooltip"))
+        self.show_action.setText(tr("tray_show"))
+        self.settings_action.setText(tr("menu_settings"))
+        self.quit_action.setText(tr("menu_quit"))
+
+    def _show_window(self) -> None:
+        self._window.showNormal()
+        self._window.activateWindow()
+
+    def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            if window.isVisible():
-                window.hide()
+            if self._window.isVisible():
+                self._window.hide()
             else:
-                window.showNormal()
-                window.activateWindow()
+                self._show_window()
 
-    tray.activated.connect(on_activated)
+
+def create_tray(window) -> AppTrayIcon:
+    """Create, show, and attach a system tray icon to ``window``."""
+    tray = AppTrayIcon(window)
     tray.show()
     return tray

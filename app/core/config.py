@@ -40,6 +40,7 @@ class AppConfig(BaseModel):
     model: str = Field(default="deepseek-chat")
     source_lang: str = Field(default="auto")
     target_lang: str = Field(default="zh")
+    ui_lang: str = Field(default="zh")
     timeout: float = Field(default=30.0)
 
     @classmethod
@@ -60,6 +61,7 @@ class AppConfig(BaseModel):
             "model": "AUTOTRANSLATE_MODEL",
             "source_lang": "AUTOTRANSLATE_SOURCE_LANG",
             "target_lang": "AUTOTRANSLATE_TARGET_LANG",
+            "ui_lang": "AUTOTRANSLATE_UI_LANG",
         }
         for field, env_name in env_map.items():
             value = os.environ.get(env_name)

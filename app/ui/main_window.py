@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QComboBox,
@@ -19,6 +18,8 @@ from PySide6.QtWidgets import (
 from ..core.config import AppConfig
 from ..core.engine import TranslationEngine
 from ..core.providers.base import LANG_NAMES
+from . import i18n
+from .i18n import lang_label, tr
 from .settings_dialog import SettingsDialog
 from .worker import TranslationTask
 
@@ -29,56 +30,54 @@ class MainWindow(QMainWindow):
         self.engine = engine
         self._task: TranslationTask | None = None
 
-        self.setWindowTitle("AutoTranslate")
+        i18n.set_language(engine.config.ui_lang)
+
         self.resize(760, 480)
 
         self._build_menu()
         self._build_central()
+        self._populate_lang_selectors()
         self._sync_lang_selectors()
+        self.retranslate()
 
     # ------------------------------------------------------------------ UI
     def _build_menu(self) -> None:
-        settings_action = QAction("Settings", self)
-        settings_action.setShortcut("Ctrl+,")
-        settings_action.triggered.connect(self.open_settings)
-        menu = self.menuBar().addMenu("File")
-        menu.addAction(settings_action)
-        quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(self._quit)
-        menu.addSeparator()
-        menu.addAction(quit_action)
+        self.settings_action = QAction(self)
+        self.settings_action.setShortcut("Ctrl+,")
+        self.settings_action.triggered.connect(self.open_settings)
+        self.file_menu = self.menuBar().addMenu("")
+        self.file_menu.addAction(self.settings_action)
+        self.quit_action = QAction(self)
+        self.quit_action.triggered.connect(self._quit)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.quit_action)
 
     def _build_central(self) -> None:
         self.source_lang = QComboBox()
         self.target_lang = QComboBox()
-        for code, name in LANG_NAMES.items():
-            self.source_lang.addItem(f"{name} ({code})", code)
-            if code != "auto":
-                self.target_lang.addItem(f"{name} ({code})", code)
 
-        swap_btn = QPushButton("\u21c4")
-        swap_btn.setFixedWidth(40)
-        swap_btn.setToolTip("Swap languages")
-        swap_btn.clicked.connect(self._swap_languages)
+        self.swap_btn = QPushButton("\u21c4")
+        self.swap_btn.setFixedWidth(40)
+        self.swap_btn.clicked.connect(self._swap_languages)
 
+        self.from_label = QLabel()
+        self.to_label = QLabel()
         lang_bar = QHBoxLayout()
-        lang_bar.addWidget(QLabel("From"))
+        lang_bar.addWidget(self.from_label)
         lang_bar.addWidget(self.source_lang, 1)
-        lang_bar.addWidget(swap_btn)
-        lang_bar.addWidget(QLabel("To"))
+        lang_bar.addWidget(self.swap_btn)
+        lang_bar.addWidget(self.to_label)
         lang_bar.addWidget(self.target_lang, 1)
 
         self.source_text = QTextEdit()
-        self.source_text.setPlaceholderText("Enter text to translate...")
         self.result_text = QTextEdit()
         self.result_text.setReadOnly(True)
-        self.result_text.setPlaceholderText("Translation appears here...")
 
         panes = QHBoxLayout()
         panes.addWidget(self.source_text)
         panes.addWidget(self.result_text)
 
-        self.translate_btn = QPushButton("Translate")
+        self.translate_btn = QPushButton()
         self.translate_btn.setShortcut("Ctrl+Return")
         self.translate_btn.clicked.connect(self.translate)
 
@@ -91,7 +90,28 @@ class MainWindow(QMainWindow):
         central.setLayout(layout)
         self.setCentralWidget(central)
 
-        self.statusBar().showMessage("Ready")
+    def _populate_lang_selectors(self) -> None:
+        for code in LANG_NAMES:
+            self.source_lang.addItem(lang_label(code), code)
+            if code != "auto":
+                self.target_lang.addItem(lang_label(code), code)
+
+    def retranslate(self) -> None:
+        """Apply current-language strings to all widgets."""
+        self.setWindowTitle(tr("app_title"))
+        self.file_menu.setTitle(tr("menu_file"))
+        self.settings_action.setText(tr("menu_settings"))
+        self.quit_action.setText(tr("menu_quit"))
+        self.from_label.setText(tr("from"))
+        self.to_label.setText(tr("to"))
+        self.swap_btn.setToolTip(tr("swap_tooltip"))
+        self.source_text.setPlaceholderText(tr("source_placeholder"))
+        self.result_text.setPlaceholderText(tr("result_placeholder"))
+        self.translate_btn.setText(tr("translate"))
+        self.statusBar().showMessage(tr("status_ready"))
+        for combo in (self.source_lang, self.target_lang):
+            for i in range(combo.count()):
+                combo.setItemText(i, lang_label(combo.itemData(i)))
 
     def _sync_lang_selectors(self) -> None:
         self._select_lang(self.source_lang, self.engine.config.source_lang)
@@ -118,19 +138,24 @@ class MainWindow(QMainWindow):
             new_config = dialog.updated_config()
             new_config.save()
             self.engine.reload(new_config)
+            i18n.set_language(new_config.ui_lang)
             self._sync_lang_selectors()
-            self.statusBar().showMessage("Settings saved", 3000)
+            self.retranslate()
+            tray = getattr(self, "tray", None)
+            if tray is not None:
+                tray.retranslate()
+            self.statusBar().showMessage(tr("status_settings_saved"), 3000)
 
     def translate(self) -> None:
         text = self.source_text.toPlainText().strip()
         if not text:
-            self.statusBar().showMessage("Nothing to translate", 3000)
+            self.statusBar().showMessage(tr("status_nothing"), 3000)
             return
         if not self.engine.config.api_key:
             QMessageBox.warning(
                 self,
-                "API key required",
-                "Please set your API key in Settings (Ctrl+,) first.",
+                tr("api_key_required_title"),
+                tr("api_key_required_body"),
             )
             return
 
@@ -138,7 +163,7 @@ class MainWindow(QMainWindow):
         target = self.target_lang.currentData()
 
         self.translate_btn.setEnabled(False)
-        self.statusBar().showMessage("Translating...")
+        self.statusBar().showMessage(tr("status_translating"))
 
         self._task = TranslationTask(self.engine, text, source, target)
         self._task.worker.finished.connect(self._on_finished)
@@ -148,12 +173,12 @@ class MainWindow(QMainWindow):
 
     def _on_finished(self, result: str) -> None:
         self.result_text.setPlainText(result)
-        self.statusBar().showMessage("Done", 3000)
+        self.statusBar().showMessage(tr("status_done"), 3000)
 
     def _on_failed(self, message: str) -> None:
         self.result_text.clear()
-        self.statusBar().showMessage("Translation failed", 5000)
-        QMessageBox.critical(self, "Translation failed", message)
+        self.statusBar().showMessage(tr("status_failed"), 5000)
+        QMessageBox.critical(self, tr("translation_failed_title"), message)
 
     def _on_thread_done(self) -> None:
         self.translate_btn.setEnabled(True)
@@ -171,8 +196,8 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.hide()
             tray.showMessage(
-                "AutoTranslate",
-                "Still running in the system tray.",
+                tr("tray_minimized_title"),
+                tr("tray_minimized_body"),
                 msecs=2000,
             )
         else:
