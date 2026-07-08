@@ -35,7 +35,8 @@ def main() -> int:
 
     hotkeys = GlobalHotkeys()
     hotkeys.screen_translate_triggered.connect(window.start_screen_translate)
-    hotkeys.start("ctrl+alt+z")
+    hotkeys.solve_triggered.connect(window.start_solve)
+    hotkeys.start("ctrl+alt+z", "ctrl+alt+x")
     window.hotkeys = hotkeys
 
     return app.exec()

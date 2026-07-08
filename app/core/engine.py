@@ -48,3 +48,10 @@ class TranslationEngine:
 
     def chat(self, messages: list[ChatMessage]) -> str:
         return self.provider.chat(messages)
+
+    def solve(self, question: str, answer_lang: str | None = None) -> str:
+        lang = answer_lang or self.config.ui_lang
+        solver = getattr(self.provider, "solve", None)
+        if solver is None:
+            raise NotImplementedError("This provider does not support solving.")
+        return solver(question, lang)

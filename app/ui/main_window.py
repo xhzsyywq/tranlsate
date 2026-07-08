@@ -19,6 +19,7 @@ from ..core.config import AppConfig
 from ..core.engine import TranslationEngine
 from ..core.logging_setup import get_logger
 from ..core.providers.base import LANG_NAMES
+from ..features.answer_solver import AnswerSolver
 from ..features.screen_translate import ScreenTranslator
 from . import i18n
 from .i18n import lang_label, tr
@@ -37,6 +38,7 @@ class MainWindow(QMainWindow):
         self._screen_translator.recognizing.connect(self._on_screen_recognizing)
         self._screen_translator.recognized.connect(self._on_screen_recognized)
         self._screen_translator.failed.connect(self._on_screen_failed)
+        self._answer_solver = AnswerSolver(engine)
 
         i18n.set_language(engine.config.ui_lang)
 
@@ -61,6 +63,10 @@ class MainWindow(QMainWindow):
         self.doc_action = QAction(self)
         self.doc_action.triggered.connect(self.open_document_dialog)
         self.file_menu.addAction(self.doc_action)
+        self.solve_action = QAction(self)
+        self.solve_action.setShortcut("Ctrl+Alt+X")
+        self.solve_action.triggered.connect(self.start_solve)
+        self.file_menu.addAction(self.solve_action)
         self.file_menu.addAction(self.settings_action)
         self.quit_action = QAction(self)
         self.quit_action.triggered.connect(self._quit)
@@ -102,9 +108,13 @@ class MainWindow(QMainWindow):
         self.doc_btn = QPushButton()
         self.doc_btn.clicked.connect(self.open_document_dialog)
 
+        self.solve_btn = QPushButton()
+        self.solve_btn.clicked.connect(self.start_solve)
+
         button_bar = QHBoxLayout()
         button_bar.addWidget(self.screen_btn)
         button_bar.addWidget(self.doc_btn)
+        button_bar.addWidget(self.solve_btn)
         button_bar.addWidget(self.translate_btn, 1)
 
         layout = QVBoxLayout()
@@ -128,6 +138,7 @@ class MainWindow(QMainWindow):
         self.file_menu.setTitle(tr("menu_file"))
         self.screen_action.setText(tr("screen_translate"))
         self.doc_action.setText(tr("doc_translate"))
+        self.solve_action.setText(tr("solve"))
         self.settings_action.setText(tr("menu_settings"))
         self.quit_action.setText(tr("menu_quit"))
         self.from_label.setText(tr("from"))
@@ -138,6 +149,7 @@ class MainWindow(QMainWindow):
         self.translate_btn.setText(tr("translate"))
         self.screen_btn.setText(tr("screen_translate"))
         self.doc_btn.setText(tr("doc_translate"))
+        self.solve_btn.setText(tr("solve"))
         self.statusBar().showMessage(tr("status_ready"))
         for combo in (self.source_lang, self.target_lang):
             for i in range(combo.count()):
@@ -172,6 +184,10 @@ class MainWindow(QMainWindow):
 
         dialog = DocumentDialog(self.engine, self)
         dialog.exec()
+
+    def start_solve(self) -> None:
+        """Trigger the screen region-selection + OCR + LLM solve flow."""
+        self._answer_solver.start()
 
     def _on_screen_recognizing(self) -> None:
         log.info("Main window: OCR recognizing, bringing window to front")

@@ -58,3 +58,26 @@ class OpenAICompatibleProvider(TranslationProvider):
     def chat(self, messages: list[ChatMessage]) -> str:
         payload = [{"role": m.role, "content": m.content} for m in messages]
         return self._request(payload, temperature=0.7)
+
+    def solve(self, question: str, answer_lang: str = "zh") -> str:
+        """Answer a question (e.g. from OCR) using the chat model.
+
+        The reply starts with a concise final answer on the first line
+        (prefixed with a marker) followed by a short explanation, so callers
+        can extract just the answer for auto-fill.
+        """
+        if not question.strip():
+            return ""
+        lang = lang_name(answer_lang)
+        system = (
+            "You are an expert exam solver. Read the question (which may include "
+            "multiple-choice options) and answer it correctly. Respond in "
+            f"{lang}. Format your reply exactly as:\n"
+            "ANSWER: <the concise final answer, e.g. the option letter or value>\n"
+            "EXPLANATION: <a brief explanation>"
+        )
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": question},
+        ]
+        return self._request(messages, temperature=0.2)
