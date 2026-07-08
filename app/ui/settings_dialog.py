@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -49,6 +50,9 @@ class SettingsDialog(QDialog):
         self._select_data(self.source_edit, config.source_lang)
         self._select_data(self.target_edit, config.target_lang)
 
+        self.input_replace_edit = QCheckBox()
+        self.input_replace_edit.setChecked(config.input_replace)
+
         form = QFormLayout()
         form.addRow(tr("settings_provider"), self.provider_edit)
         form.addRow(tr("settings_api_key"), self.api_key_edit)
@@ -59,6 +63,7 @@ class SettingsDialog(QDialog):
         )
         form.addRow(tr("settings_default_source"), self.source_edit)
         form.addRow(tr("settings_default_target"), self.target_edit)
+        form.addRow(tr("settings_input_replace"), self.input_replace_edit)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -89,5 +94,6 @@ class SettingsDialog(QDialog):
                 "ui_lang": self.ui_lang_edit.currentData(),
                 "source_lang": self.source_edit.currentData(),
                 "target_lang": self.target_edit.currentData(),
+                "input_replace": self.input_replace_edit.isChecked(),
             }
         )

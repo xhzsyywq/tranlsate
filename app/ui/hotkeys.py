@@ -14,13 +14,17 @@ class GlobalHotkeys(QObject):
 
     screen_translate_triggered = Signal()
     solve_triggered = Signal()
+    input_translate_triggered = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._enabled = False
 
     def start(
-        self, screen_hotkey: str = "ctrl+alt+z", solve_hotkey: str = "ctrl+alt+x"
+        self,
+        screen_hotkey: str = "ctrl+alt+z",
+        solve_hotkey: str = "ctrl+alt+x",
+        input_hotkey: str = "ctrl+alt+t",
     ) -> bool:
         """Register hotkeys. Returns False if the backend is unavailable."""
         try:
@@ -33,6 +37,7 @@ class GlobalHotkeys(QObject):
                 screen_hotkey, self.screen_translate_triggered.emit
             )
             keyboard.add_hotkey(solve_hotkey, self.solve_triggered.emit)
+            keyboard.add_hotkey(input_hotkey, self.input_translate_triggered.emit)
         except Exception:  # noqa: BLE001 - e.g. insufficient privileges
             return False
 

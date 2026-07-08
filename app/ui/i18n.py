@@ -98,6 +98,11 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "solve_solving": "\u6b63\u5728\u4f5c\u7b54...",
         "solve_copy_answer": "\u590d\u5236\u7b54\u6848",
         "solve_autofill": "\u81ea\u52a8\u586b\u5145",
+        # Input translation
+        "input_translate": "\u8f93\u5165\u6846\u7ffb\u8bd1",
+        "input_hint": "\uff08\u5feb\u6377\u952e Ctrl+Alt+T\uff09",
+        "input_result_title": "\u7ffb\u8bd1\u7ed3\u679c",
+        "settings_input_replace": "\u8f93\u5165\u6846\u7ffb\u8bd1\u76f4\u63a5\u66ff\u6362\u9009\u4e2d\u6587\u672c",
         # Language names (for selectors)
         "lang_auto": "\u81ea\u52a8\u68c0\u6d4b",
         "lang_zh": "\u4e2d\u6587\uff08\u7b80\u4f53\uff09",
@@ -187,6 +192,10 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "solve_solving": "Solving...",
         "solve_copy_answer": "Copy answer",
         "solve_autofill": "Auto-fill",
+        "input_translate": "Input translate",
+        "input_hint": "(Ctrl+Alt+T)",
+        "input_result_title": "Translation",
+        "settings_input_replace": "Replace selected text when translating input",
         "lang_auto": "Auto-detect",
         "lang_zh": "Chinese (Simplified)",
         "lang_zh-tw": "Chinese (Traditional)",
