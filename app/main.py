@@ -40,6 +40,14 @@ def main() -> int:
     hotkeys.start("ctrl+alt+z", "ctrl+alt+x", "ctrl+alt+t")
     window.hotkeys = hotkeys
 
+    # Auto-start the local server for browser extension integration.
+    from .server import start_server
+
+    start_server(engine, engine.config.server_port)
+    window._server_running = True
+    window.tray.retranslate()
+
+    log.info("AutoTranslate ready")
     return app.exec()
 
 

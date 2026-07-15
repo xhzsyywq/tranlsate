@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         self._screen_translator.failed.connect(self._on_screen_failed)
         self._answer_solver = AnswerSolver(engine)
         self._input_translator = InputTranslator(engine)
+        self._server_running = False
 
         i18n.set_language(engine.config.ui_lang)
 
@@ -204,6 +205,23 @@ class MainWindow(QMainWindow):
     def start_input_translate(self) -> None:
         """Translate the currently selected text in any input field."""
         self._input_translator.start()
+
+    def toggle_server(self) -> None:
+        """Start or stop the local HTTP server for browser extension."""
+        from ..server import start_server, stop_server
+
+        if self._server_running:
+            stop_server()
+            self._server_running = False
+            self.statusBar().showMessage(tr("server_stopped"), 3000)
+        else:
+            ok = start_server(self.engine, self.engine.config.server_port)
+            if ok:
+                self._server_running = True
+                self.statusBar().showMessage(tr("server_running"), 5000)
+        tray = getattr(self, "tray", None)
+        if tray is not None:
+            tray.retranslate()
 
     def _on_screen_recognizing(self) -> None:
         log.info("Main window: OCR recognizing, bringing window to front")

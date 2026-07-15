@@ -37,6 +37,12 @@ class AppTrayIcon(QSystemTrayIcon):
         self.input_action.triggered.connect(window.start_input_translate)
         menu.addAction(self.input_action)
 
+        menu.addSeparator()
+
+        self.server_action = QAction(window)
+        self.server_action.triggered.connect(window.toggle_server)
+        menu.addAction(self.server_action)
+
         self.settings_action = QAction(window)
         self.settings_action.triggered.connect(window.open_settings)
         menu.addAction(self.settings_action)
@@ -58,6 +64,8 @@ class AppTrayIcon(QSystemTrayIcon):
         self.doc_action.setText(tr("doc_translate"))
         self.solve_action.setText(tr("solve"))
         self.input_action.setText(tr("input_translate"))
+        running = getattr(self._window, "_server_running", False)
+        self.server_action.setText(tr("server_stop") if running else tr("server_start"))
         self.settings_action.setText(tr("menu_settings"))
         self.quit_action.setText(tr("menu_quit"))
 

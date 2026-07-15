@@ -45,6 +45,7 @@ class AppConfig(BaseModel):
     doc_output_format: str = Field(default="same")
     max_workers: int = Field(default=4)
     input_replace: bool = Field(default=True)
+    server_port: int = Field(default=18190)
     timeout: float = Field(default=30.0)
 
     @classmethod
